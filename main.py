@@ -6,6 +6,7 @@ import getpass
 from sqlalchemy import create_engine
 from query import address_by_name
 from contextlib import asynccontextmanager
+import socket
 
 DB_PATH = "./parcels.db"
 
@@ -13,9 +14,10 @@ DB_PATH = "./parcels.db"
 @asynccontextmanager
 async def lifespan(app):
     global engine
+    hostname = socket.gethostbyname("ada.mines.edu")
     login = input("Login username: ")
     secret = parse.quote(getpass.getpass())
-    engine = create_engine(f'postgresql+psycopg2://{login}:{secret}@ada.mines.edu:5432/csci403')
+    engine = create_engine(f'postgresql+psycopg2://{login}:{secret}@{hostname}:5432/csci403')
     yield
 
 app = FastAPI(lifespan=lifespan)
