@@ -4,7 +4,7 @@ from pathlib import Path
 
 app = FastAPI()
 
-#middle man for security, rn don't care about authentication
+#middle man for security, rn don't care about authentication so allow all origins
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
