@@ -10,6 +10,8 @@ import os
 DB_PATH = "./parcels.db"
 load_dotenv()
 
+#IP address: 138.67.212.56
+
 #updated to no longer use a deprecated function
 @asynccontextmanager
 async def lifespan(app):
