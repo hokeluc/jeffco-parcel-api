@@ -1,7 +1,12 @@
-from fastapi import FastAPI, Query, Body
+from fastapi import FastAPI, Query, Body, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pathlib import Path
-import sqlite3
+import uvicorn
+from urllib import parse
+import getpass
+from sqlalchemy import create_engine
+from query import address_by_name
+
+
 
 app = FastAPI()
 
@@ -14,27 +19,26 @@ app.add_middleware(
 )
 
 
+
+
 DB_PATH = "./parcels.db"
 
+@app.on_event("startup")
+def startup():
+    global engine
+    login = input("Login username: ")
+    secret = parse.quote(getpass.getpass())
+    engine = create_engine(f'postgresql+psycopg2://{login}:{secret}@ada.mines.edu:5432/csci403')
 
-def get_connection(connDB=True):
-
-    if not connDB:
-        return None #add code to connect to database here, idk how to do that rn
-    # connect to the sqlite database locally
-    if connDB:
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
-        return conn
+# Endpoint to get owners by name: example : http://localhost:8000/owners?name=Smith
+@app.get("/owners")
+def get_owners(name: str):
+    try:
+        df = address_by_name(engine, name)
+        return df.to_dict(orient="records")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
     
-    return None
 
-# Sample endpoint
-@app.get("/")
-def read_root():
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM parcels LIMIT 10;")
-    rows = cur.fetchall()
-    return {"message": "Hello, World!", "data": [dict(row) for row in rows]}
-
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

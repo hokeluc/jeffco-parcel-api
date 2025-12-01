@@ -9,11 +9,13 @@ table = 'jeffco_staging'
 
 def address_by_name(engine: Engine, name: str):
     # should be updated, I think concating a null field makes the whole result null, so won't work for single owner homes
-    query = "select " +\
-        "ownnam || '|' || ownnam2 as owners, " +\
-        "prpaddress || ', ' || prpctynam || ', ' || prpzip5 as address " +\
-        f"from {schema}.{table} " +\
-        "where ownnam ilike '%%' || %s || '%%' or ownnam2 ilike '%%' || %s || '%%';"
+    query = f"""
+    select
+        ownnam || '|' || ownnam2 as owners,
+        prpaddress || ', ' || prpctynam || ', ' || prpzip5 as address
+    from {schema}.{table}
+    where ownnam ilike '%%' || %s || '%%' or ownnam2 ilike '%%' || %s || '%%';
+    """
     return pd.read_sql(
         query,
         engine,
