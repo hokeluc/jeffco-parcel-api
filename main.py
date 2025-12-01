@@ -6,15 +6,18 @@ import getpass
 from sqlalchemy import create_engine
 from query import address_by_name
 from contextlib import asynccontextmanager
+from dotenv import load_dotenv
+import os
 
 DB_PATH = "./parcels.db"
+load_dotenv()
 
 #updated to no longer use a deprecated function
 @asynccontextmanager
 async def lifespan(app):
     global engine
     login = input("Login username: ")
-    secret = parse.quote(getpass.getpass())
+    secret = os.getenv("DB_PASSWORD")
     engine = create_engine(f'postgresql+psycopg2://{login}:{secret}@ada.mines.edu:5432/csci403')
     yield
 
