@@ -6,7 +6,9 @@ import getpass
 from sqlalchemy import create_engine
 from query import address_by_name
 from contextlib import asynccontextmanager
-
+import socket
+from dotenv import load_dotenv
+import os
 DB_PATH = "./parcels.db"
 load_dotenv()
 
@@ -16,7 +18,7 @@ async def lifespan(app):
     global engine
     hostname = socket.gethostbyname("ada.mines.edu")
     login = input("Login username: ")
-    secret = parse.quote(getpass.getpass())
+    secret = os.getenv("DB_PASSWORD")
     engine = create_engine(f'postgresql+psycopg2://{login}:{secret}@ada.mines.edu:5432/csci403')
     yield
 
