@@ -2,6 +2,7 @@ from urllib import parse
 from sqlalchemy import create_engine, Engine
 import pandas as pd
 import getpass # temp
+import socket
 
 # these can be globals defined in another file
 schema = 'kkubaska'
@@ -22,9 +23,10 @@ def address_by_name(engine: Engine, name: str):
         params=(name, name))
 
 def main():
-    login = input('Login username: ')
+    hostname = socket.gethostbyname("ada.mines.edu")
+    login = input("Login username: ")
     secret = parse.quote(getpass.getpass())
-    engine = create_engine(f'postgresql+psycopg2://{login}:{secret}@ada.mines.edu:5432/csci403')
+    engine = create_engine(f'postgresql+psycopg2://{login}:{secret}@{hostname}:5432/csci403')
 
     results = address_by_name(engine, 'mcdonald')
     print(results)
