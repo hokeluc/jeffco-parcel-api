@@ -5,10 +5,20 @@ from urllib import parse
 import getpass
 from sqlalchemy import create_engine
 from query import address_by_name
+from contextlib import asynccontextmanager
 
+DB_PATH = "./parcels.db"
 
+#updated to no longer use a deprecated function
+@asynccontextmanager
+async def lifespan(app):
+    global engine
+    login = input("Login username: ")
+    secret = parse.quote(getpass.getpass())
+    engine = create_engine(f'postgresql+psycopg2://{login}:{secret}@ada.mines.edu:5432/csci403')
+    yield
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 #middle man for security, rn don't care about authentication so allow all origins
 app.add_middleware(
@@ -17,18 +27,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-
-
-DB_PATH = "./parcels.db"
-
-@app.on_event("startup")
-def startup():
-    global engine
-    login = input("Login username: ")
-    secret = parse.quote(getpass.getpass())
-    engine = create_engine(f'postgresql+psycopg2://{login}:{secret}@ada.mines.edu:5432/csci403')
 
 # Endpoint to get owners by name: example : http://localhost:8000/owners?name=Smith
 @app.get("/owners")
