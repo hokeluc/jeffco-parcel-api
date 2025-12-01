@@ -14,7 +14,7 @@ load_dotenv()
 @asynccontextmanager
 async def lifespan(app):
     global engine
-    login = input("Login username: ")
+    login = parse.quote(str(os.getenv("DB_USERNAME")))
     secret = parse.quote(str(os.getenv("DB_PASSWORD")))
     engine = create_engine(f'postgresql+psycopg2://{login}:{secret}@ada.mines.edu:5432/csci403')
     yield
