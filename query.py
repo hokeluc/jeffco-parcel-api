@@ -24,30 +24,22 @@ def address_by_name(engine: Engine, name: str):
         engine,
         params=(name, name))
 
-def property_and_city_stats(engine: Engine, address: str, city: str):
-    """
-    Look up one parcel by situs address + city, then compute
-    min / max / avg of the chosen value column for that city.
-    """
 
+# Endpoint for city wide comps
+def city_comps(engine: Engine, address: str, city: str):
     global schema, table
 
-    # Build full table reference with proper quoting
     if schema:
         full_table = f'"{schema}"."{table}"'
     else:
         full_table = f'"{table}"'
 
-    # === JEFFCO COLUMN NAMES – TWEAK THESE IF NEEDED ===
-    # Common patterns for Jeffco parcel data:
-    #   - situs address:  situsaddr   or  situs_addr
-    #   - situs city:     situscity   or  situs_city
-    #   - value/price:    actvalue, totvalue, apprvalue, etc.
+    # Define column names
     address_col = "prpaddress"
     city_col = "prpctynam"
-    price_col = "valact"   # <-- pick the value you want as your “price”
+    price_col = "valact"  
 
-    # 1) Find the specific property by address + city
+    # 1) Find the specific property by address and its city
     prop_query = f"""
         SELECT
         {address_col} AS address,
@@ -61,13 +53,13 @@ def property_and_city_stats(engine: Engine, address: str, city: str):
 
     prop_df = pd.read_sql_query(prop_query, engine, params=(address, city))
 
+    # If property not found, return None
     if prop_df.empty:
-        # Nothing matched that address+city
         return None
 
     prop_row = prop_df.iloc[0]
 
-    # 2) Compute city-level stats for that value column
+    # 2) Compute city wide stats for comp analysis
     stats_query = f"""
         SELECT
         MIN({price_col}::numeric) AS min_price,
@@ -81,8 +73,8 @@ def property_and_city_stats(engine: Engine, address: str, city: str):
 
     stats_df = pd.read_sql_query(stats_query, engine, params=(city,))
 
+    # If no stats found (e.g., no properties with price), return property info with null stats
     if stats_df.empty:
-        # No stats, but we still return the property info
         return {
             "property": {
                 "address": prop_row["address"],
@@ -110,18 +102,13 @@ def property_and_city_stats(engine: Engine, address: str, city: str):
 
     return result
 
+# Endpoint for radius based comps
 def property_distance_comps(
     engine: Engine,
     address: str,
     city: str,
     radius_miles: float = 0.5,
 ):
-    """
-    Separate distance-based comps function.
-    Finds the subject property, then comps within a radius,
-    sorted by closest distance and limited to top 50.
-    """
-
     global schema, table
 
     if schema:
@@ -129,7 +116,6 @@ def property_distance_comps(
     else:
         full_table = f'"{table}"'
 
-    # Jeffco column names
     address_col = "prpaddress"
     city_col    = "prpctynam"
     price_col   = "valact"
@@ -139,7 +125,6 @@ def property_distance_comps(
     # x/y are in feet → convert miles to feet
     radius_feet = radius_miles * 5280.0
 
-    # ---------- Query 1: subject ----------
     prop_query = f"""
         SELECT
             {address_col} AS address,
@@ -164,7 +149,6 @@ def property_distance_comps(
     x0 = float(prop_row["x"])
     y0 = float(prop_row["y"])
 
-    # ---------- Query 2: comps within radius, sorted, limited ----------
     comps_query = f"""
         SELECT
             {address_col} AS address,
@@ -218,7 +202,6 @@ def property_distance_comps(
             "num_properties": int(len(prices)),
         }
 
-        # The query is already sorted by distance, so this will be sorted too
         comparables = [
             {
                 "address": row["address"],
@@ -238,6 +221,84 @@ def property_distance_comps(
         "comp_stats": comp_stats,
         "comparables": comparables,
     }
+
+# Endpoint for neighborhood comps
+# Endpoint for city wide comps
+def neighborhood_comps(engine: Engine, address: str, neighborhood: str):
+    global schema, table
+
+    if schema:
+        full_table = f'"{schema}"."{table}"'
+    else:
+        full_table = f'"{table}"'
+
+    # Define column names
+    address_col = "prpaddress"
+    neighborhood_col = "nhdnam"
+    price_col = "valact"  
+
+    # 1) Find the specific property by address and its city
+    prop_query = f"""
+        SELECT
+        {address_col} AS address,
+        {neighborhood_col}    AS neighborhood,
+        ({price_col}::numeric) AS price
+    FROM {full_table}
+    WHERE UPPER(TRIM({address_col})) = UPPER(TRIM(%s))
+      AND UPPER(TRIM({neighborhood_col}))    = UPPER(TRIM(%s))
+    LIMIT 1;
+"""
+
+    prop_df = pd.read_sql_query(prop_query, engine, params=(address, neighborhood))
+
+    # If property not found, return None
+    if prop_df.empty:
+        return None
+
+    prop_row = prop_df.iloc[0]
+
+    # 2) Compute city wide stats for comp analysis
+    stats_query = f"""
+        SELECT
+        MIN({price_col}::numeric) AS min_price,
+        MAX({price_col}::numeric) AS max_price,
+        AVG({price_col}::numeric) AS avg_price,
+        COUNT({price_col}) AS num_properties
+    FROM {full_table}
+    WHERE UPPER(TRIM({neighborhood_col})) = UPPER(TRIM(%s))
+      AND {price_col} IS NOT NULL;
+"""
+
+    stats_df = pd.read_sql_query(stats_query, engine, params=(neighborhood,))
+
+    # If no stats found (e.g., no properties with price), return property info with null stats
+    if stats_df.empty:
+        return {
+            "property": {
+                "address": prop_row["address"],
+                "neighborhood": prop_row["neighborhood"],
+                "price": float(prop_row["price"]) if pd.notna(prop_row["price"]) else None,
+            },
+            "neighborhood_stats": None,
+        }
+
+    stats_row = stats_df.iloc[0]
+
+    result = {
+        "property": {
+            "address": prop_row["address"],
+            "neighborhood": prop_row["neighborhood"],
+            "price": float(prop_row["price"]) if pd.notna(prop_row["price"]) else None,
+        },
+        "neighborhood_stats": {
+            "min_price": float(stats_row["min_price"]) if pd.notna(stats_row["min_price"]) else None,
+            "max_price": float(stats_row["max_price"]) if pd.notna(stats_row["max_price"]) else None,
+            "avg_price": float(stats_row["avg_price"]) if pd.notna(stats_row["avg_price"]) else None,
+            "num_properties": int(stats_row["num_properties"]) if pd.notna(stats_row["num_properties"]) else 0,
+        },
+    }
+
+    return result
 
 def main():
     login = input("Login username: ")

@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from urllib import parse
 from sqlalchemy import create_engine
-from query import address_by_name, property_and_city_stats, property_distance_comps
+from query import address_by_name, city_comps, property_distance_comps, neighborhood_comps
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import os
@@ -43,10 +43,29 @@ def get_owners(name: str):
 # Endpoint to get property price + city stats
 # Example:
 #   GET /property-stats?address=123%20Main%20St&city=Golden
-@app.get("/property-stats")
+@app.get("/city-comps")
 def get_property_stats(address: str, city: str):
     try:
-        result = property_and_city_stats(engine, address, city)
+        result = city_comps(engine, address, city)
+
+        if result is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Property not found with that address and city."
+            )
+
+        return result
+
+    except HTTPException:
+        # re-raise clean 404s / etc.
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/neighborhood-comps")
+def get_property_stats(address: str, neighborhood: str):
+    try:
+        result = neighborhood_comps(engine, address, neighborhood)
 
         if result is None:
             raise HTTPException(
