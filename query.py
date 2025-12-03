@@ -300,6 +300,19 @@ def neighborhood_comps(engine: Engine, address: str, neighborhood: str):
 
     return result
 
+def most_valuable_streets(engine: Engine):
+    """Returns (3) rows of: street_value (a comma seperated string), street_name, and num_val (the numerical street value)"""
+    query = f"""
+    select 
+    distinct to_char(sum(totactval::numeric) over (partition by prpstrnam), '999,999,999,999') as street_value, 
+    prpstrnam as street_name, 
+    sum(totactval::numeric) over (partition by prpstrnam) as num_val
+    from {schema}.{table}
+    order by num_val desc
+    limit 3;
+    """
+    return pd.read_sql(query, engine)
+
 def main():
     login = input("Login username: ")
     secret = parse.quote(str(os.getenv("DB_PASSWORD")))
