@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from urllib import parse
 from sqlalchemy import create_engine
-from query import address_by_name
+from query import address_by_name, property_and_city_stats, property_distance_comps
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import os
@@ -40,6 +40,50 @@ def get_owners(name: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
+# Endpoint to get property price + city stats
+# Example:
+#   GET /property-stats?address=123%20Main%20St&city=Golden
+@app.get("/property-stats")
+def get_property_stats(address: str, city: str):
+    try:
+        result = property_and_city_stats(engine, address, city)
+
+        if result is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Property not found with that address and city."
+            )
+
+        return result
+
+    except HTTPException:
+        # re-raise clean 404s / etc.
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+@app.get("/property-distance-comps")
+def get_property_distance_comps(
+    address: str,
+    city: str,
+    radius_miles: float = 0.5,  # default radius
+):
+    try:
+        result = property_distance_comps(engine, address, city, radius_miles)
+
+        if result is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Property not found with that address and city."
+            )
+
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
