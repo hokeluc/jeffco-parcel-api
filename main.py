@@ -70,7 +70,7 @@ def get_property_stats(address: str, neighborhood: str):
         if result is None:
             raise HTTPException(
                 status_code=404,
-                detail="Property not found with that address and city."
+                detail="Property not found with that address and neighborhood."
             )
 
         return result
