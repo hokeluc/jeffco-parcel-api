@@ -54,7 +54,7 @@ def get_most_valuable_streets():
 # Example:
 #   GET /property-stats?address=123%20Main%20St&city=Golden
 @app.get("/city-comps")
-def get_property_stats(address: str, city: str):
+def get_city_comps(address: str, city: str):
     try:
         result = city_comps(engine, address, city)
 
@@ -73,7 +73,7 @@ def get_property_stats(address: str, city: str):
         raise HTTPException(status_code=500, detail=str(e))
     
 @app.get("/neighborhood-comps")
-def get_property_stats(address: str, neighborhood: str):
+def get_neighborhood_comps(address: str, neighborhood: str):
     try:
         result = neighborhood_comps(engine, address, neighborhood)
 
