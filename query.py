@@ -37,7 +37,7 @@ def city_comps(engine: Engine, address: str, city: str):
     # Define column names
     address_col = "prpaddress"
     city_col = "prpctynam"
-    price_col = "valact"  
+    price_col = "valact"
 
     # 1) Find the specific property by address and its city
     prop_query = f"""
@@ -64,6 +64,7 @@ def city_comps(engine: Engine, address: str, city: str):
         SELECT
         MIN({price_col}::numeric) AS min_price,
         MAX({price_col}::numeric) AS max_price,
+        MAX({price_col}::numeric) - MIN({price_col}::numeric) AS price_range,
         AVG({price_col}::numeric) AS avg_price,
         COUNT({price_col}) AS num_properties
     FROM {full_table}
@@ -95,6 +96,7 @@ def city_comps(engine: Engine, address: str, city: str):
         "city_stats": {
             "min_price": float(stats_row["min_price"]) if pd.notna(stats_row["min_price"]) else None,
             "max_price": float(stats_row["max_price"]) if pd.notna(stats_row["max_price"]) else None,
+            "price_range": float(stats_row["price_range"]) if pd.notna(stats_row["price_range"]) else None,
             "avg_price": float(stats_row["avg_price"]) if pd.notna(stats_row["avg_price"]) else None,
             "num_properties": int(stats_row["num_properties"]) if pd.notna(stats_row["num_properties"]) else 0,
         },
@@ -198,6 +200,7 @@ def property_distance_comps(
         comp_stats = {
             "min_price": float(prices.min()),
             "max_price": float(prices.max()),
+            "price_range": float(prices.max() - prices.min()),
             "avg_price": float(prices.mean()),
             "num_properties": int(len(prices)),
         }
@@ -262,6 +265,7 @@ def neighborhood_comps(engine: Engine, address: str, neighborhood: str):
         SELECT
         MIN({price_col}::numeric) AS min_price,
         MAX({price_col}::numeric) AS max_price,
+        MAX({price_col}::numeric) - MIN({price_col}::numeric) AS price_range,
         AVG({price_col}::numeric) AS avg_price,
         COUNT({price_col}) AS num_properties
     FROM {full_table}
@@ -293,6 +297,7 @@ def neighborhood_comps(engine: Engine, address: str, neighborhood: str):
         "neighborhood_stats": {
             "min_price": float(stats_row["min_price"]) if pd.notna(stats_row["min_price"]) else None,
             "max_price": float(stats_row["max_price"]) if pd.notna(stats_row["max_price"]) else None,
+            "price_range": float(stats_row["price_range"]) if pd.notna(stats_row["price_range"]) else None,
             "avg_price": float(stats_row["avg_price"]) if pd.notna(stats_row["avg_price"]) else None,
             "num_properties": int(stats_row["num_properties"]) if pd.notna(stats_row["num_properties"]) else 0,
         },

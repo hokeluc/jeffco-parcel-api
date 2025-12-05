@@ -52,7 +52,7 @@ def get_most_valuable_streets():
     
 # Endpoint to get property price + city stats
 # Example:
-#   GET /property-stats?address=123%20Main%20St&city=Golden
+# http://localhost:8000/city-comps?address=2104%20WASHINGTON%20AVE&city=GOLDEN
 @app.get("/city-comps")
 def get_city_comps(address: str, city: str):
     try:
@@ -91,7 +91,7 @@ def get_neighborhood_comps(address: str, neighborhood: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-
+# http://localhost:8000/property-distance-comps?address=2104%20WASHINGTON%20AVE&city=GOLDEN
 @app.get("/property-distance-comps")
 def get_property_distance_comps(
     address: str,
