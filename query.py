@@ -305,6 +305,45 @@ def neighborhood_comps(engine: Engine, address: str, neighborhood: str):
 
     return result
 
+def property_type_counts_city(engine: Engine, city: str):
+
+    global schema, table
+
+    if schema:
+        full_table = f'"{schema}"."{table}"'
+    else:
+        full_table = f'"{table}"'
+
+    # Jeffco columns – tweak if needed
+    city_col = "prpctynam"      # city / place name
+    property_type_col = "ownico"  # land use / property type description
+
+    query = f"""
+        SELECT
+            {property_type_col} AS property_type,
+            COUNT(*) AS count
+        FROM {full_table}
+        WHERE UPPER(TRIM({city_col})) = UPPER(TRIM(%s))
+        GROUP BY {property_type_col}
+        ORDER BY count DESC;
+    """
+
+    df = pd.read_sql_query(query, engine, params=(city,))
+
+    # Convert to simple list of dicts
+    type_counts = [
+        {
+            "property_type": row["property_type"],
+            "count": int(row["count"]),
+        }
+        for _, row in df.iterrows()
+    ]
+
+    return {
+        "city": city,
+        "property_type_counts": type_counts,
+    }
+
 def most_valuable_streets(engine: Engine):
     """Returns (3) rows of: street_value (a comma seperated string), street_name, and num_val (the numerical street value)"""
     query = f"""
