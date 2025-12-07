@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from urllib import parse
 from sqlalchemy import create_engine
-from query import address_by_name, city_comps, property_distance_comps, neighborhood_comps, most_valuable_streets, property_type_counts_city
+from query import address_by_name, city_comps, property_distance_comps, neighborhood_comps, most_valuable_streets, property_type_counts_city, most_valuable_street_types
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import os
@@ -46,6 +46,16 @@ def get_most_valuable_streets():
     try:
         df = most_valuable_streets(engine)
         df['street_value'] = df['street_value'].map(lambda x: str(x).strip())
+        return df.drop('num_val', axis=1).to_dict(orient="records")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+# http://localhost:8000/funfacts/typevalue
+@app.get("/funfacts/typevalue")
+def get_most_valuable_street_types():
+    try:
+        df = most_valuable_street_types(engine)
+        df['average_value'] = df['average_value'].map(lambda x: str(x).strip())
         return df.drop('num_val', axis=1).to_dict(orient="records")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

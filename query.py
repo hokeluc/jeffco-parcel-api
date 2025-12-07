@@ -357,6 +357,17 @@ def most_valuable_streets(engine: Engine):
     """
     return pd.read_sql(query, engine)
 
+def most_valuable_street_types(engine: Engine):
+    """Returns rows in order of value of: average_value (a comma seperated string), street_type, and num_val (the numerical average street type value)"""
+    query = f"""
+    select distinct to_char(avg(totactval::numeric) over (partition by prpstrtyp), '999,999,999,999') as average_value,
+    prpstrtyp as street_type,
+    avg(totactval::numeric) over (partition by prpstrtyp) as num_val
+    from {schema}.{table}
+    order by num_val desc;
+    """
+    return pd.read_sql(query, engine)
+
 def main():
     login = input("Login username: ")
     secret = parse.quote(str(os.getenv("DB_PASSWORD")))
