@@ -344,6 +344,94 @@ def property_type_counts_city(engine: Engine, city: str):
         "property_type_counts": type_counts,
     }
 
+def occupancy_counts_city(engine: Engine, city: str):
+    """
+    Count parcels in a city by occupancy_type using concatenated + normalized
+    property and mailing addresses.
+
+    Rules:
+      - commercial: ownico IS NOT NULL
+      - owner_occupied: mailing addr matches property addr (normalized) OR mailing is empty
+      - rental: everything else
+    """
+
+    global schema, table
+
+    if schema:
+        full_table = f'"{schema}"."{table}"'
+    else:
+        full_table = f'"{table}"'
+
+    # Column names – tweak if your Jeffco schema differs
+    city_col        = "prpctynam"
+
+    prp_addr_col  = "prpstrnum"
+    prp_street_col  = "prpstrnam"
+    prp_city_col = "prpctynam"
+
+    mail_addr1_col  = "mailstrnbr"
+    mail_street_col   = "mailstrnam"
+    mail_city_col  = "mailctynam"
+
+    ownico_col      = "ownico"
+
+    query = f"""
+        WITH normalized AS (
+            SELECT
+                *,
+                -- Concatenate + normalize property address
+                UPPER(
+                    REGEXP_REPLACE(
+                        TRIM(
+                            COALESCE({prp_addr_col}, '') || ' ' ||
+                            COALESCE({prp_street_col}, '') || ' ' ||
+                            COALESCE({prp_city_col}, '')
+                        ),
+                        '\\s+',
+                        ' '
+                    )
+                ) AS prop_addr_norm,
+
+                -- Concatenate + normalize mailing address
+                UPPER(
+                    REGEXP_REPLACE(
+                        TRIM(
+                            COALESCE({mail_addr1_col}, '') || ' ' ||
+                            COALESCE({mail_street_col}, '')  || ' ' ||
+                            COALESCE({mail_city_col}, '')
+                        ),
+                        '\\s+',
+                        ' '
+                    )
+                ) AS mail_addr_norm
+            FROM {full_table}
+        )
+        SELECT
+            CASE
+                WHEN {ownico_col} IS NOT NULL THEN 'commercial'
+                WHEN mail_addr_norm = '' THEN 'owner_occupied'
+                WHEN mail_addr_norm = prop_addr_norm THEN 'owner_occupied'
+                ELSE 'rental'
+            END AS occupancy_type,
+            COUNT(*) AS count
+        FROM normalized
+        WHERE UPPER(TRIM({city_col})) = UPPER(TRIM(%s))
+        GROUP BY occupancy_type
+        ORDER BY occupancy_type;
+    """
+
+    df = pd.read_sql_query(query, engine, params=(city,))
+
+    results = [
+        {"occupancy_type": row["occupancy_type"], "count": int(row["count"])}
+        for _, row in df.iterrows()
+    ]
+
+    return {
+        "city": city,
+        "occupancy_counts": results,
+    }
+
 def most_valuable_streets(engine: Engine):
     """Returns (3) rows of: street_value (a comma seperated string), street_name, and num_val (the numerical street value)"""
     query = f"""

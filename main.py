@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from urllib import parse
 from sqlalchemy import create_engine
-from query import address_by_name, city_comps, property_distance_comps, neighborhood_comps, most_valuable_streets, property_type_counts_city, most_valuable_street_types
+from query import address_by_name, city_comps, property_distance_comps, neighborhood_comps, most_valuable_streets, property_type_counts_city, occupancy_counts_city
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import os
@@ -132,6 +132,14 @@ def get_property_types_city(city: str):
 
         return result
 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/occupancy-city")
+def get_occupancy_city(city: str):
+    try:
+        result = occupancy_counts_city(engine, city)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
