@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from urllib import parse
 from sqlalchemy import create_engine
-from query import address_by_name, city_comps, property_distance_comps, neighborhood_comps, most_valuable_streets, property_type_counts_city, occupancy_counts_city
+from query import address_by_name, city_comps, property_distance_comps, neighborhood_comps, most_valuable_streets, property_type_counts_city, occupancy_counts_city, most_valuable_street_types
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import os
