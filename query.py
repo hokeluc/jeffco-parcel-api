@@ -306,6 +306,7 @@ def neighborhood_comps(engine: Engine, address: str, neighborhood: str):
     return result
 
 def property_type_counts_city(engine: Engine, city: str):
+    """ Not as useful as hoped, show the count of properties each company has within a city """
 
     global schema, table
 
@@ -346,13 +347,10 @@ def property_type_counts_city(engine: Engine, city: str):
 
 def occupancy_counts_city(engine: Engine, city: str):
     """
-    Count parcels in a city by occupancy_type using concatenated + normalized
-    property and mailing addresses.
-
-    Rules:
-      - commercial: ownico IS NOT NULL
-      - owner_occupied: mailing addr matches property addr (normalized) OR mailing is empty
-      - rental: everything else
+    How categorize occupancy types:
+      commercial: ownico IS NOT NULL
+      owner_occupied: mailing addr matches property addr (normalized) OR mailing is empty
+      rental: everything else
     """
 
     global schema, table
