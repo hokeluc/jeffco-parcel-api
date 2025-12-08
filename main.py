@@ -147,7 +147,7 @@ def get_occupancy_city(city: str):
 # http://localhost:8000/neighbors?pin=30-342-02-017
 # http://localhost:8000/neighbors?address=512%2016TH%20STREET&city=GOLDEN
 @app.get("/neighbors")
-def get_neighbors(address: str or None = None, city: str or None = None, pin: str or None = None, limit: int = 50):
+def get_neighbors(address: str|None = None, city: str|None = None, pin: str|None = None, limit: int = 50):
     if address and not city:  # a city must be provided for address filtering
         raise HTTPException(status_code=400,
                             detail="Please provide a city with the given address.")
