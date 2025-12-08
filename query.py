@@ -360,7 +360,6 @@ def occupancy_counts_city(engine: Engine, city: str):
     else:
         full_table = f'"{table}"'
 
-    # Column names – tweak if your Jeffco schema differs
     city_col        = "prpctynam"
 
     prp_addr_col  = "prpstrnum"
@@ -453,6 +452,63 @@ def most_valuable_street_types(engine: Engine):
     order by num_val desc;
     """
     return pd.read_sql(query, engine)
+
+def neighbors_parcel_pin(engine: Engine, parcel_pin: str, limit: int = 50):
+    """Returns parcel owner name and address information, parcel information, and valuation based on Euclidean coordinate distance from the parcel pin."""
+    query = f"""
+    WITH eref AS
+        (SELECT DISTINCT prpzip5 as zip, pin,
+        (AVG(x_coord) OVER (PARTITION BY pin))::BIGINT AS x_coord,
+        (AVG(y_coord) OVER (PARTITION BY pin))::BIGINT AS y_coord
+        FROM {schema}.{table}
+        WHERE pin = %(pin)s)
+    SELECT DISTINCT objectid, p.pin, p.x_coord, p.y_coord,
+        ownnam AS primary_owner, ownnam2 AS secondary_owner, ownnam3 AS tertiary_owner,
+        prpstrnum || ' ' || COALESCE(prpstrdir || ' ' || prpstrnam, prpstrnam) || ' ' || COALESCE(prpstrtyp || ' ' ||prpstrsfx || ' ' || prpstrunt, COALESCE(prpstrtyp || ' ' || prpstrsfx, prpstrtyp)) AS property_address,
+        prpctynam AS property_city, prpstenam AS property_state, prpzip5 AS property_zip, totactval AS primary_market_value,
+        mailstrnbr || ' ' || COALESCE(mailstrdir || ' ' || mailstrnam, mailstrnam) || ' ' || COALESCE(mailstrtyp || ' ' ||mailstrsfx || ' ' || mailstrunt, COALESCE(mailstrtyp || ' ' || mailstrsfx, mailstrtyp)) AS mailing_address,
+        mailctynam AS mailing_city, mailstenam AS mailing_state, mailzip5 AS mailing_zip,
+        {schema}.euclidean(p.x_coord, eref.x_coord, p.y_coord, eref.y_coord) AS euclidean_distance
+    FROM {schema}.{table} AS p
+    INNER JOIN eref ON eref.zip = p.prpzip5
+    WHERE pindesc = '1' AND p.pin <> eref.pin
+    ORDER BY euclidean_distance LIMIT %(limit)s
+    """
+    return pd.read_sql(query, engine, params={'pin': parcel_pin, 'limit': limit})
+
+def neighbors_address(engine: Engine, address: str, city: str, limit: int = 50):
+    """Returns parcel owner name and address information, parcel information, and valuation based on Euclidean coordinate distance from the given address in a city.
+    Results are only as good as the address given (addresses for condos may return interesting neighbor results.)"""
+    address_formatted = address.upper()
+    replacements = {"%20": " ", "COURT": "CT", "STREET": "ST", "BOULEVARD": "BLVD", "DRIVE": "DR", "ROAD": "RD"}
+    for old, new in replacements.items():
+        address_formatted = address_formatted.replace(old, new)
+
+    city_formatted = city.upper()
+    query = f"""
+    WITH eref AS
+        (SELECT DISTINCT prpaddress AS property_address,
+        pin,
+        prpctynam AS city,
+        (AVG(x_coord) OVER (PARTITION BY pin))::BIGINT AS x_coord,
+        (AVG(y_coord) OVER (PARTITION BY pin))::BIGINT AS y_coord
+        FROM {schema}.{table}
+        WHERE prpaddress = %(address)s
+        AND prpctynam = %(city)s)
+    SELECT DISTINCT objectid, p.pin, p.x_coord, p.y_coord,
+    ownnam AS primary_owner, ownnam2 AS secondary_owner, ownnam3 AS tertiary_owner,
+    prpaddress AS property_address,
+    prpctynam AS property_city, prpstenam AS property_state, prpzip5 AS property_zip, totactval AS primary_market_value,
+    mailstrnbr || ' ' || COALESCE(mailstrdir || ' ' || mailstrnam, mailstrnam) || ' ' || COALESCE(mailstrtyp || ' ' ||mailstrsfx || ' ' || mailstrunt, COALESCE(mailstrtyp || ' ' || mailstrsfx, mailstrtyp)) AS mailing_address,
+    mailctynam AS mailing_city, mailstenam AS mailing_state, mailzip5 AS mailing_zip,
+    {schema}.euclidean(p.x_coord, eref.x_coord, p.y_coord, eref.y_coord) AS euclidean_distance
+    FROM {schema}.{table} AS p
+    INNER JOIN eref ON eref.city = p.prpctynam
+    WHERE pindesc = '1' AND p.prpaddress <> eref.property_address
+    ORDER BY euclidean_distance LIMIT %(limit)s;
+    """
+    return pd.read_sql(query, engine, params={'address': address_formatted, 'city': city_formatted, 'limit': limit})
+
 
 def main():
     login = input("Login username: ")

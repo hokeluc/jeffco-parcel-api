@@ -3,10 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from urllib import parse
 from sqlalchemy import create_engine
-from query import address_by_name, city_comps, property_distance_comps, neighborhood_comps, most_valuable_streets, property_type_counts_city, occupancy_counts_city, most_valuable_street_types
+from query import *
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import os
+import numpy as np
 DB_PATH = "./parcels.db"
 load_dotenv()
 
@@ -143,5 +144,32 @@ def get_occupancy_city(city: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# http://localhost:8000/neighbors?pin=30-342-02-017
+# http://localhost:8000/neighbors?address=512%2016TH%20STREET&city=GOLDEN
+@app.get("/neighbors")
+def get_neighbors(address: str or None = None, city: str or None = None, pin: str or None = None, limit: int = 50):
+    if address and not city:  # a city must be provided for address filtering
+        raise HTTPException(status_code=400,
+                            detail="Please provide a city with the given address.")
+    if city and not address:  # a city alone cannot be provided for address filtering
+        raise HTTPException(status_code=400,
+                            detail="Please provide an address with the given city.")
+    if pin and (address or city):  # if address or city is provided along with pin
+        raise HTTPException(status_code=400,
+                            detail="Please provide either only a parcel pin or address + city for neighbor search.")
+    if not pin and not (address and city):  # if neither of the three valid fields are provided
+        raise HTTPException(status_code=400,
+                            detail="Please provide either a parcel pin or address + city for neighbor search.")
+    try:
+        if (address and city) and not pin:
+            df = neighbors_address(engine, address, city, limit)
+            return df.replace({np.nan: 'N/A'}).to_dict(orient='records')
+        elif pin and not (address and city):
+            df = neighbors_parcel_pin(engine, pin, limit)
+            return df.replace({np.nan: 'N/A'}).to_dict(orient='records')
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="localhost", port=8000, reload=True)
