@@ -62,7 +62,7 @@ def get_most_valuable_street_types():
     
 # Endpoint to get property price + city stats
 # Example:
-# http://localhost:8000/city-comps?address=2104%20WASHINGTON%20AVE&city=GOLDEN
+# http://localhost:8000/city-comps?address=1100%2013TH%20ST&city=GOLDEN
 @app.get("/city-comps")
 def get_city_comps(address: str, city: str):
     try:
@@ -82,6 +82,7 @@ def get_city_comps(address: str, city: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
+# http://localhost:8000/neighborhood-comps?address=1100%2013TH%20ST&neighborhood=Golden%20Proper
 @app.get("/neighborhood-comps")
 def get_neighborhood_comps(address: str, neighborhood: str):
     try:
@@ -101,7 +102,7 @@ def get_neighborhood_comps(address: str, neighborhood: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-# http://localhost:8000/property-distance-comps?address=2104%20WASHINGTON%20AVE&city=GOLDEN
+# http://localhost:8000/property-distance-comps?address=1100%2013TH%20ST&city=GOLDEN
 @app.get("/property-distance-comps")
 def get_property_distance_comps(
     address: str,
@@ -134,7 +135,7 @@ def get_property_types_city(city: str):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
+# http://localhost:8000/occupancy-city?city=GOLDEN
 @app.get("/occupancy-city")
 def get_occupancy_city(city: str):
     try:

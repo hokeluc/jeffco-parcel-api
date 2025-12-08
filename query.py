@@ -226,7 +226,6 @@ def property_distance_comps(
     }
 
 # Endpoint for neighborhood comps
-# Endpoint for city wide comps
 def neighborhood_comps(engine: Engine, address: str, neighborhood: str):
     global schema, table
 
