@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from urllib import parse
 from sqlalchemy import create_engine
-from query import address_by_name, city_comps, property_distance_comps, neighborhood_comps, most_valuable_streets, property_type_counts_city, occupancy_counts_city, most_valuable_street_types
+from query import *
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import os
@@ -143,5 +143,35 @@ def get_occupancy_city(city: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+#http://localhost:8000/turnover/neighborhood?years=5
+@app.get("/turnover/neighborhood")
+def get_turnover_neighborhood(years: int = 10):
+    try:
+        df = turnover_neighborhood(engine, years)
+        return df.to_dict(orient="records")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+#http://localhost:8000/turnover/subdivision?years=3
+@app.get("/turnover/subdivision")
+def get_turnover_subdivision(years: int = 10):
+    try:
+        df = turnover_subdivision(engine, years)
+        return df.to_dict(orient="records")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+#http://localhost:8000/value-change/neighborhood
+@app.get("/value-change/neighborhood")
+def get_value_change_neighborhood():
+    try:
+        df = value_change_by_neighborhood(engine)
+        return df.to_dict(orient="records")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
