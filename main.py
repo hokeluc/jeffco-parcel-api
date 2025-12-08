@@ -11,7 +11,6 @@ import numpy as np
 DB_PATH = "./parcels.db"
 load_dotenv()
 
-#IP address: 138.67.212.56
 
 #updated to no longer use a deprecated function
 @asynccontextmanager
@@ -144,7 +143,6 @@ def get_occupancy_city(city: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
 # http://localhost:8000/neighbors?pin=30-342-02-017
 # http://localhost:8000/neighbors?address=512%2016TH%20STREET&city=GOLDEN
 @app.get("/neighbors")
@@ -171,5 +169,34 @@ def get_neighbors(address: str or None = None, city: str or None = None, pin: st
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+#http://localhost:8000/turnover/neighborhood?years=5
+@app.get("/turnover/neighborhood")
+def get_turnover_neighborhood(years: int = 10):
+    try:
+        df = turnover_neighborhood(engine, years)
+        return df.to_dict(orient="records")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+#http://localhost:8000/turnover/subdivision?years=3
+@app.get("/turnover/subdivision")
+def get_turnover_subdivision(years: int = 10):
+    try:
+        df = turnover_subdivision(engine, years)
+        return df.to_dict(orient="records")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+#http://localhost:8000/value-change/neighborhood
+@app.get("/value-change/neighborhood")
+def get_value_change_neighborhood():
+    try:
+        df = value_change_by_neighborhood(engine)
+        return df.to_dict(orient="records")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="localhost", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+

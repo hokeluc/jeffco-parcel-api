@@ -453,6 +453,7 @@ def most_valuable_street_types(engine: Engine):
     """
     return pd.read_sql(query, engine)
 
+<<<<<<< HEAD
 def neighbors_parcel_pin(engine: Engine, parcel_pin: str, limit: int = 50):
     """Returns parcel owner name and address information, parcel information, and valuation based on Euclidean coordinate distance from the parcel pin."""
     query = f"""
@@ -509,6 +510,110 @@ def neighbors_address(engine: Engine, address: str, city: str, limit: int = 50):
     """
     return pd.read_sql(query, engine, params={'address': address_formatted, 'city': city_formatted, 'limit': limit})
 
+# Endpoint for neighborhood turnover
+def turnover_neighborhood(engine: Engine, years: int = 10):
+    query = f"""
+    WITH sales AS (
+        SELECT PIN, NHDNAM, TO_DATE(SLSDT, 'MMDDYYYY') AS sale_date FROM {schema}.{table}
+        UNION ALL
+        SELECT PIN, NHDNAM, TO_DATE(SLSDT2, 'MMDDYYYY') FROM {schema}.{table}
+        UNION ALL
+        SELECT PIN, NHDNAM, TO_DATE(SLSDT3, 'MMDDYYYY') FROM {schema}.{table}
+        UNION ALL
+        SELECT PIN, NHDNAM, TO_DATE(SLSDT4, 'MMDDYYYY') FROM {schema}.{table}
+    ),
+    recent_sales AS (
+        SELECT DISTINCT PIN, NHDNAM
+        FROM sales
+        WHERE sale_date >= CURRENT_DATE - INTERVAL %s
+    ),
+    neighbors AS (
+        SELECT NHDNAM, COUNT(DISTINCT PIN) AS total_properties
+        FROM {schema}.{table}
+        GROUP BY NHDNAM
+    )
+    SELECT
+        n.NHDNAM AS neighborhood,
+        COUNT(rs.PIN) AS properties_sold_last_period,
+        n.total_properties,
+        ROUND(
+            COUNT(rs.PIN)::numeric / NULLIF(n.total_properties, 0) * 100,
+            2
+        ) AS turnover_percent
+    FROM neighbors n
+    LEFT JOIN recent_sales rs USING (NHDNAM)
+    GROUP BY n.NHDNAM, n.total_properties
+    ORDER BY turnover_percent DESC;
+    """
+    return pd.read_sql(query, engine, params=(f"{years} years",))
+
+
+# Endpoint for subdivision turnover
+def turnover_subdivision(engine: Engine, years: int = 10):
+    query = f"""
+    WITH sales AS (
+        SELECT PIN, SUBNAM, TO_DATE(SLSDT, 'MMDDYYYY') AS sale_date
+        FROM {schema}.{table} WHERE TAXCLS LIKE '1%%'
+        UNION ALL
+        SELECT PIN, SUBNAM, TO_DATE(SLSDT2, 'MMDDYYYY')
+        FROM {schema}.{table} WHERE TAXCLS LIKE '1%%'
+        UNION ALL
+        SELECT PIN, SUBNAM, TO_DATE(SLSDT3, 'MMDDYYYY')
+        FROM {schema}.{table} WHERE TAXCLS LIKE '1%%'
+        UNION ALL
+        SELECT PIN, SUBNAM, TO_DATE(SLSDT4, 'MMDDYYYY')
+        FROM {schema}.{table} WHERE TAXCLS LIKE '1%%'
+    ),
+    recent_sales AS (
+        SELECT DISTINCT PIN, SUBNAM
+        FROM sales
+        WHERE sale_date >= CURRENT_DATE - INTERVAL %s
+    ),
+    subdivisions AS (
+        SELECT SUBNAM, COUNT(DISTINCT PIN) AS total_properties
+        FROM {schema}.{table}
+        WHERE TAXCLS LIKE '1%%'
+        GROUP BY SUBNAM
+    )
+    SELECT
+        s.SUBNAM AS subdivision,
+        COUNT(rs.PIN) AS properties_sold_last_period,
+        s.total_properties,
+        ROUND(
+            COUNT(rs.PIN)::numeric / NULLIF(s.total_properties, 0) * 100,
+            2
+        ) AS turnover_percent
+    FROM subdivisions s
+    LEFT JOIN recent_sales rs USING (SUBNAM)
+    GROUP BY s.SUBNAM, s.total_properties
+    HAVING s.total_properties >= 20
+    ORDER BY turnover_percent DESC;
+    """
+    interval = f"'{years} years'"
+    return pd.read_sql(query, engine, params=(f"{years} years",))
+
+# Endpoint for neighborhood value change
+def value_change_by_neighborhood(engine: Engine):
+    query = f"""
+    SELECT
+        NHDNAM AS neighborhood,
+        SUM(TOTACTVAL::numeric) AS total_current_value,
+        SUM(PYRTOTVAL::numeric) AS total_prior_value,
+        SUM(TOTACTVAL::numeric) - SUM(PYRTOTVAL::numeric) AS value_change,
+        ROUND(
+            (SUM(TOTACTVAL::numeric) - SUM(PYRTOTVAL::numeric))
+            / NULLIF(SUM(PYRTOTVAL::numeric), 0)::numeric * 100,
+            2
+        ) AS value_change_pct
+    FROM {schema}.{table}
+        WHERE TAXCLS LIKE '1%%'
+            AND TOTACTVAL IS NOT NULL
+            AND PYRTOTVAL IS NOT NULL
+    GROUP BY NHDNAM
+    HAVING SUM(PYRTOTVAL::numeric) > 0
+    ORDER BY value_change_pct DESC;
+    """
+    return pd.read_sql(query, engine)
 
 def main():
     login = input("Login username: ")
