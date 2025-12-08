@@ -453,7 +453,6 @@ def most_valuable_street_types(engine: Engine):
     """
     return pd.read_sql(query, engine)
 
-<<<<<<< HEAD
 def neighbors_parcel_pin(engine: Engine, parcel_pin: str, limit: int = 50):
     """Returns parcel owner name and address information, parcel information, and valuation based on Euclidean coordinate distance from the parcel pin."""
     query = f"""
