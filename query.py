@@ -464,7 +464,7 @@ def neighbors_parcel_pin(engine: Engine, parcel_pin: str, limit: int = 50):
         WHERE pin = %(pin)s)
     SELECT DISTINCT objectid, p.pin, p.x_coord, p.y_coord,
         ownnam AS primary_owner, ownnam2 AS secondary_owner, ownnam3 AS tertiary_owner,
-        prpstrnum || ' ' || COALESCE(prpstrdir || ' ' || prpstrnam, prpstrnam) || ' ' || COALESCE(prpstrtyp || ' ' ||prpstrsfx || ' ' || prpstrunt, COALESCE(prpstrtyp || ' ' || prpstrsfx, prpstrtyp)) AS property_address,
+        prpaddress AS property_address,
         prpctynam AS property_city, prpstenam AS property_state, prpzip5 AS property_zip, totactval AS primary_market_value,
         mailstrnbr || ' ' || COALESCE(mailstrdir || ' ' || mailstrnam, mailstrnam) || ' ' || COALESCE(mailstrtyp || ' ' ||mailstrsfx || ' ' || mailstrunt, COALESCE(mailstrtyp || ' ' || mailstrsfx, mailstrtyp)) AS mailing_address,
         mailctynam AS mailing_city, mailstenam AS mailing_state, mailzip5 AS mailing_zip,
