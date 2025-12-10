@@ -622,7 +622,7 @@ def current_username(engine: Engine):
 # Add starred parcels to lookup table based on user name logged into engine and parcel objectid
 def add_parcel(engine: Engine, object_id: str):
     df = pd.DataFrame({"username": [current_username(engine)], "objectid": [object_id]})
-    return  df.to_sql(stars, engine, if_exists='append', index=False)
+    return  df.to_sql(stars, engine, if_exists='append', index=False, schema=schema)
 
 # Add flagged properties to lookup table based on user name logged into engine and parcel pin
 def add_flagged_property(engine: Engine, parcel_pin: str):
