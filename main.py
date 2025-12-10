@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import os
 import numpy as np
+from pydantic import BaseModel
 DB_PATH = "./parcels.db"
 load_dotenv()
 
@@ -197,7 +198,7 @@ def get_value_change_neighborhood():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-#who am I 
+#who am I http://localhost:8000/whoami
 @app.get("/whoami")
 def whoami():
     try:
@@ -205,6 +206,18 @@ def whoami():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Endpoint to add a starred parcel
+class StarCreate(BaseModel):
+    parcel_pin: str
+
+# Endpoint to add a starred parcel
+@app.post("/parcels")
+def create_star(payload: StarCreate):
+    try:
+        n = add_parcel(engine, payload.parcel_pin)
+        return {"ok": True, "rows_affected": n}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

@@ -614,9 +614,22 @@ def value_change_by_neighborhood(engine: Engine):
     return pd.read_sql(query, engine)
 
 #testing username retrieval
-def current_username(engine: Engine) -> str:
+def current_username(engine: Engine):
     df = pd.read_sql_query("SELECT CURRENT_USER AS username;", engine)
     return str(df.iloc[0]["username"])
+
+def exec_write(engine: Engine, sql: str, params: dict) -> int:
+    with engine.begin() as conn:
+        res = conn.execute(text(sql), params)
+        return res.rowcount
+
+# Add starred parcels to lookup table based on user name logged into engine and parcel pin
+def add_parcel(engine: Engine, parcel_pin: str):
+    sql = f"""
+    INSERT INTO {schema}.starred_parcels (username, parcel_pin)
+    VALUES (CURRENT_USER, %s);
+    """
+    return exec_write(engine, sql, (parcel_pin,))
 
 # Add flagged properties to lookup table based on user name logged into engine and parcel pin
 def add_flagged_property(engine: Engine, parcel_pin: str):
