@@ -624,14 +624,33 @@ def add_parcel(engine: Engine, object_id: str):
     df = pd.DataFrame({"username": [current_username(engine)], "objectid": [object_id]})
     return  df.to_sql(stars, engine, if_exists='append', index=False, schema=schema)
 
-# Add flagged properties to lookup table based on user name logged into engine and parcel pin
-def add_flagged_property(engine: Engine, parcel_pin: str):
-    pass
-
 
 # Endpoint for modifying mailing addresses for parcels
-def update_mailing_address(engine: Engine, address_num: str, address: str, city: str, state: str, zipcode: str):
-    pass
+def update_mailing_address(engine: Engine, parcel_pin: str, address_num: str, address_dir: str | None, address_name: str, address_type: str, address_suffix: str | None, city: str, state: str, zipcode5: str, zipcode4: str | None):
+    query = f"""UPDATE {schema}.{parcels}
+    SET mailstrnbr = '%(address_num)s',
+    """
+    if address_dir:
+        query += "\n mailstrdir = '%(address_dir)s',"
+    query += """
+    mailstrnam = '%(address_name)s',
+    mailstrtyp = '%(address_type)"""
+    if address_suffix:
+        query += "\n mailstrsfx = '%(address_suffix)s',"
+    query += """
+    mailctynam = '%(city)s',
+    mailstename = '%(state)s',
+    mailzip5 = '%(zipcode5)s',
+    """
+    if zipcode4:
+        query += "\n mailzip4 = '%(zipcode4)s'"
+    query += "WHERE pin = '%(parcel_pin)s';"
+
+    return pd.read_sql(query, engine, params={'parcel_pin': parcel_pin, 'address_num': address_num,
+                                       'address_dir': address_dir, 'address_name': address_name,
+                                       'address_type': address_type, 'address_suffix': address_suffix,
+                                       'city': city, 'state': state,
+                                       'zipcode4': zipcode4, 'zipcode5': zipcode5})
 
 def main():
     login = input("Login username: ")

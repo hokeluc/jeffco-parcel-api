@@ -7,6 +7,7 @@ from query import *
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import os
+import re
 import numpy as np
 from pydantic import BaseModel
 DB_PATH = "./parcels.db"
@@ -211,7 +212,7 @@ class StarCreate(BaseModel):
     object_id: str
 
 # Endpoint to add a starred parcel
-@app.post("/parcels")
+@app.post("/parcels/add_starred")
 def create_star(payload: StarCreate):
     try:
         n = add_parcel(engine, payload.object_id)
@@ -219,6 +220,63 @@ def create_star(payload: StarCreate):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Endpoint to modify a parcel's mailing address
+@app.put("/parcels/edit_mailing")
+def edit_mailing(parcel_pin: str, address: str, city: str, state: str, zip: str):
+    DIRECTIONS = {"N", "S", "E", "W", "NE", "NW", "SE", "SW"}
+
+    STREET_TYPES = {
+        "ST", "AVE", "BLVD", "RD", "LN", "DR", "CT", "PL", "PKWY", "WAY", "CIR",
+        "HWY", "TER", "TRL", "RUN", "SQ", "CV", "CTX", "EXPY", "FWY", "PIKE",
+    }
+
+    SUFFIX_WORDS = {"APT", "UNIT", "SUITE", "STE", "FL", "BLDG"}
+
+    tokens = address.strip().upper().split()
+
+    street_num = None
+    direction = None
+    street_type = None
+    suffix = None
+
+    # regex for street num
+    if tokens and re.match(r"^\d+[A-Z]?$", tokens[0]):  # handles 14, 14A, 2301B
+        street_num = tokens.pop(0)
+    else:
+        raise HTTPException(status_code=400,
+                        detail="Please provide a valid street number.")
+
+    # validate direction if present
+    if tokens and tokens[0] in DIRECTIONS:
+        direction = tokens.pop(0)
+
+    # validate suffix if present
+    if tokens and tokens[-1] in SUFFIX_WORDS:
+        suffix = tokens.pop()
+
+    # validate street type
+    if tokens and tokens[-1] in STREET_TYPES:
+        street_type = tokens.pop()
+    else:
+        raise HTTPException(status_code=400,
+                        detail="Please provide a valid street type.")
+
+    if tokens:
+        street_name = "".join(tokens)
+    else:
+        raise HTTPException(status_code=400,
+                        detail="Please provide a valid street name.")
+
+    zip = zip.split('-')
+    zipcode5 = zip[0]
+    zipcode4 = zip[1]
+
+    try:
+        return update_mailing_address(engine, parcel_pin, street_num, 
+                               direction, street_name, street_type,
+                               suffix, city, state, zipcode5, zipcode4)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
