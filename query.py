@@ -8,7 +8,8 @@ load_dotenv()
 
 # these can be globals defined in another file
 schema = 'kkubaska'
-table = 'jeffco_staging'
+parcels = 'jeffco_staging'
+stars = 'starred_parcel'
 
 def address_by_name(engine: Engine, name: str):
     # should be updated, I think concating a null field makes the whole result null, so won't work for single owner homes
@@ -16,7 +17,7 @@ def address_by_name(engine: Engine, name: str):
     select
         ownnam || '|' || ownnam2 as owners,
         prpaddress || ', ' || prpctynam || ', ' || prpzip5 as address
-    from {schema}.{table}
+    from {schema}.{parcels}
     where ownnam ilike '%%' || %s || '%%' or ownnam2 ilike '%%' || %s || '%%';
     """
     return pd.read_sql(
@@ -27,12 +28,12 @@ def address_by_name(engine: Engine, name: str):
 
 # Endpoint for city wide comps
 def city_comps(engine: Engine, address: str, city: str):
-    global schema, table
+    global schema, parcels
 
     if schema:
-        full_table = f'"{schema}"."{table}"'
+        full_table = f'"{schema}"."{parcels}"'
     else:
-        full_table = f'"{table}"'
+        full_table = f'"{parcels}"'
 
     # Define column names
     address_col = "prpaddress"
@@ -111,12 +112,12 @@ def property_distance_comps(
     city: str,
     radius_miles: float = 0.5,
 ):
-    global schema, table
+    global schema, parcels
 
     if schema:
-        full_table = f'"{schema}"."{table}"'
+        full_table = f'"{schema}"."{parcels}"'
     else:
-        full_table = f'"{table}"'
+        full_table = f'"{parcels}"'
 
     address_col = "prpaddress"
     city_col    = "prpctynam"
@@ -227,12 +228,12 @@ def property_distance_comps(
 
 # Endpoint for neighborhood comps
 def neighborhood_comps(engine: Engine, address: str, neighborhood: str):
-    global schema, table
+    global schema, parcels
 
     if schema:
-        full_table = f'"{schema}"."{table}"'
+        full_table = f'"{schema}"."{parcels}"'
     else:
-        full_table = f'"{table}"'
+        full_table = f'"{parcels}"'
 
     # Define column names
     address_col = "prpaddress"
@@ -307,12 +308,12 @@ def neighborhood_comps(engine: Engine, address: str, neighborhood: str):
 def property_type_counts_city(engine: Engine, city: str):
     """ Not as useful as hoped, show the count of properties each company has within a city """
 
-    global schema, table
+    global schema, parcels
 
     if schema:
-        full_table = f'"{schema}"."{table}"'
+        full_table = f'"{schema}"."{parcels}"'
     else:
-        full_table = f'"{table}"'
+        full_table = f'"{parcels}"'
 
     # Jeffco columns – tweak if needed
     city_col = "prpctynam"      # city / place name
@@ -352,12 +353,12 @@ def occupancy_counts_city(engine: Engine, city: str):
       rental: everything else
     """
 
-    global schema, table
+    global schema, parcels
 
     if schema:
-        full_table = f'"{schema}"."{table}"'
+        full_table = f'"{schema}"."{parcels}"'
     else:
-        full_table = f'"{table}"'
+        full_table = f'"{parcels}"'
 
     city_col        = "prpctynam"
 
@@ -435,7 +436,7 @@ def most_valuable_streets(engine: Engine):
     distinct to_char(sum(totactval::numeric) over (partition by prpstrnam), '999,999,999,999') as street_value, 
     prpstrnam as street_name, 
     sum(totactval::numeric) over (partition by prpstrnam) as num_val
-    from {schema}.{table}
+    from {schema}.{parcels}
     order by num_val desc
     limit 3;
     """
@@ -447,7 +448,7 @@ def most_valuable_street_types(engine: Engine):
     select distinct to_char(avg(totactval::numeric) over (partition by prpstrtyp), '999,999,999,999') as average_value,
     prpstrtyp as street_type,
     avg(totactval::numeric) over (partition by prpstrtyp) as num_val
-    from {schema}.{table}
+    from {schema}.{parcels}
     order by num_val desc;
     """
     return pd.read_sql(query, engine)
@@ -459,7 +460,7 @@ def neighbors_parcel_pin(engine: Engine, parcel_pin: str, limit: int = 50):
         (SELECT DISTINCT prpzip5 as zip, pin,
         (AVG(x_coord) OVER (PARTITION BY pin))::BIGINT AS x_coord,
         (AVG(y_coord) OVER (PARTITION BY pin))::BIGINT AS y_coord
-        FROM {schema}.{table}
+        FROM {schema}.{parcels}
         WHERE pin = %(pin)s)
     SELECT DISTINCT objectid, p.pin, p.x_coord, p.y_coord,
         ownnam AS primary_owner, ownnam2 AS secondary_owner, ownnam3 AS tertiary_owner,
@@ -468,7 +469,7 @@ def neighbors_parcel_pin(engine: Engine, parcel_pin: str, limit: int = 50):
         mailstrnbr || ' ' || COALESCE(mailstrdir || ' ' || mailstrnam, mailstrnam) || ' ' || COALESCE(mailstrtyp || ' ' ||mailstrsfx || ' ' || mailstrunt, COALESCE(mailstrtyp || ' ' || mailstrsfx, mailstrtyp)) AS mailing_address,
         mailctynam AS mailing_city, mailstenam AS mailing_state, mailzip5 AS mailing_zip,
         {schema}.euclidean(p.x_coord, eref.x_coord, p.y_coord, eref.y_coord) AS euclidean_distance
-    FROM {schema}.{table} AS p
+    FROM {schema}.{parcels} AS p
     INNER JOIN eref ON eref.zip = p.prpzip5
     WHERE pindesc = '1' AND p.pin <> eref.pin
     ORDER BY euclidean_distance LIMIT %(limit)s
@@ -491,7 +492,7 @@ def neighbors_address(engine: Engine, address: str, city: str, limit: int = 50):
         prpctynam AS city,
         (AVG(x_coord) OVER (PARTITION BY pin))::BIGINT AS x_coord,
         (AVG(y_coord) OVER (PARTITION BY pin))::BIGINT AS y_coord
-        FROM {schema}.{table}
+        FROM {schema}.{parcels}
         WHERE prpaddress = %(address)s
         AND prpctynam = %(city)s)
     SELECT DISTINCT objectid, p.pin, p.x_coord, p.y_coord,
@@ -501,7 +502,7 @@ def neighbors_address(engine: Engine, address: str, city: str, limit: int = 50):
     mailstrnbr || ' ' || COALESCE(mailstrdir || ' ' || mailstrnam, mailstrnam) || ' ' || COALESCE(mailstrtyp || ' ' ||mailstrsfx || ' ' || mailstrunt, COALESCE(mailstrtyp || ' ' || mailstrsfx, mailstrtyp)) AS mailing_address,
     mailctynam AS mailing_city, mailstenam AS mailing_state, mailzip5 AS mailing_zip,
     {schema}.euclidean(p.x_coord, eref.x_coord, p.y_coord, eref.y_coord) AS euclidean_distance
-    FROM {schema}.{table} AS p
+    FROM {schema}.{parcels} AS p
     INNER JOIN eref ON eref.city = p.prpctynam
     WHERE pindesc = '1' AND p.prpaddress <> eref.property_address
     ORDER BY euclidean_distance LIMIT %(limit)s;
@@ -512,13 +513,13 @@ def neighbors_address(engine: Engine, address: str, city: str, limit: int = 50):
 def turnover_neighborhood(engine: Engine, years: int = 10):
     query = f"""
     WITH sales AS (
-        SELECT PIN, NHDNAM, TO_DATE(SLSDT, 'MMDDYYYY') AS sale_date FROM {schema}.{table}
+        SELECT PIN, NHDNAM, TO_DATE(SLSDT, 'MMDDYYYY') AS sale_date FROM {schema}.{parcels}
         UNION ALL
-        SELECT PIN, NHDNAM, TO_DATE(SLSDT2, 'MMDDYYYY') FROM {schema}.{table}
+        SELECT PIN, NHDNAM, TO_DATE(SLSDT2, 'MMDDYYYY') FROM {schema}.{parcels}
         UNION ALL
-        SELECT PIN, NHDNAM, TO_DATE(SLSDT3, 'MMDDYYYY') FROM {schema}.{table}
+        SELECT PIN, NHDNAM, TO_DATE(SLSDT3, 'MMDDYYYY') FROM {schema}.{parcels}
         UNION ALL
-        SELECT PIN, NHDNAM, TO_DATE(SLSDT4, 'MMDDYYYY') FROM {schema}.{table}
+        SELECT PIN, NHDNAM, TO_DATE(SLSDT4, 'MMDDYYYY') FROM {schema}.{parcels}
     ),
     recent_sales AS (
         SELECT DISTINCT PIN, NHDNAM
@@ -527,7 +528,7 @@ def turnover_neighborhood(engine: Engine, years: int = 10):
     ),
     neighbors AS (
         SELECT NHDNAM, COUNT(DISTINCT PIN) AS total_properties
-        FROM {schema}.{table}
+        FROM {schema}.{parcels}
         GROUP BY NHDNAM
     )
     SELECT
@@ -551,16 +552,16 @@ def turnover_subdivision(engine: Engine, years: int = 10):
     query = f"""
     WITH sales AS (
         SELECT PIN, SUBNAM, TO_DATE(SLSDT, 'MMDDYYYY') AS sale_date
-        FROM {schema}.{table} WHERE TAXCLS LIKE '1%%'
+        FROM {schema}.{parcels} WHERE TAXCLS LIKE '1%%'
         UNION ALL
         SELECT PIN, SUBNAM, TO_DATE(SLSDT2, 'MMDDYYYY')
-        FROM {schema}.{table} WHERE TAXCLS LIKE '1%%'
+        FROM {schema}.{parcels} WHERE TAXCLS LIKE '1%%'
         UNION ALL
         SELECT PIN, SUBNAM, TO_DATE(SLSDT3, 'MMDDYYYY')
-        FROM {schema}.{table} WHERE TAXCLS LIKE '1%%'
+        FROM {schema}.{parcels} WHERE TAXCLS LIKE '1%%'
         UNION ALL
         SELECT PIN, SUBNAM, TO_DATE(SLSDT4, 'MMDDYYYY')
-        FROM {schema}.{table} WHERE TAXCLS LIKE '1%%'
+        FROM {schema}.{parcels} WHERE TAXCLS LIKE '1%%'
     ),
     recent_sales AS (
         SELECT DISTINCT PIN, SUBNAM
@@ -569,7 +570,7 @@ def turnover_subdivision(engine: Engine, years: int = 10):
     ),
     subdivisions AS (
         SELECT SUBNAM, COUNT(DISTINCT PIN) AS total_properties
-        FROM {schema}.{table}
+        FROM {schema}.{parcels}
         WHERE TAXCLS LIKE '1%%'
         GROUP BY SUBNAM
     )
@@ -603,7 +604,7 @@ def value_change_by_neighborhood(engine: Engine):
             / NULLIF(SUM(PYRTOTVAL::numeric), 0)::numeric * 100,
             2
         ) AS value_change_pct
-    FROM {schema}.{table}
+    FROM {schema}.{parcels}
         WHERE TAXCLS LIKE '1%%'
             AND TOTACTVAL IS NOT NULL
             AND PYRTOTVAL IS NOT NULL
@@ -618,21 +619,10 @@ def current_username(engine: Engine):
     df = pd.read_sql_query("SELECT CURRENT_USER AS username;", engine)
     return str(df.iloc[0]["username"])
 
-def exec_write(engine: Engine, sql: str, params: dict):
-    with engine.begin() as conn:
-        res = conn.execute(sql, params)
-        return res.rowcount
-
 # Add starred parcels to lookup table based on user name logged into engine and parcel pin
 def add_parcel(engine: Engine, parcel_pin: str):
-    cu = current_username(engine)
-
-    sql = f"""
-    INSERT INTO {schema}.starred_parcel (username, parcel_pin)
-    VALUES (:username, :parcel_pin);
-    """
-
-    return exec_write(engine, sql, params={"username": cu, "parcel_pin": parcel_pin})
+    df = pd.DataFrame({"username": current_username(engine), "parcel_pin": parcel_pin})
+    return  df.to_sql(f'{schema}.{stars}', engine, if_exists='append', index=False)
 
 # Add flagged properties to lookup table based on user name logged into engine and parcel pin
 def add_flagged_property(engine: Engine, parcel_pin: str):
