@@ -262,14 +262,15 @@ def edit_mailing(parcel_pin: str, address: str, city: str, state: str, zip: str)
                         detail="Please provide a valid street type.")
 
     if tokens:
-        street_name = "".join(tokens)
+        street_name = " ".join(tokens)
     else:
         raise HTTPException(status_code=400,
                         detail="Please provide a valid street name.")
 
-    zip = zip.split('-')
-    zipcode5 = zip[0]
-    zipcode4 = zip[1]
+    parts = zip.split("-", 1)
+    zipcode5 = parts[0]
+    zipcode4 = parts[1] if len(parts) == 2 else None
+
 
     try:
         return update_mailing_address(engine, parcel_pin, street_num, 

@@ -105,3 +105,12 @@ ORDER BY DEDTYP;
 SELECT DISTINCT NHDNAM FROM jeffco_staging ORDER BY NHDNAM;
 
 SELECT DISTINCT nhdnam, SUM(slsamt::NUMERIC) FROM jeffco_staging GROUP BY NHDNAM HAVING COUNT(*) > 1000 ORDER BY SUM DESC;
+
+SELECT
+  pin,
+  objectid,
+  mailstrnbr, mailstrdir, mailstrnam, mailstrtyp, mailstrsfx, mailstrunt,
+  mailctynam, mailstenam, mailzip5, mailzip4
+FROM kkubaska.jeffco_staging
+WHERE pin = '30-152-01-140'
+ORDER BY objectid;

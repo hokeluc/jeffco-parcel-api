@@ -626,31 +626,50 @@ def add_parcel(engine: Engine, object_id: str):
 
 
 # Endpoint for modifying mailing addresses for parcels
-def update_mailing_address(engine: Engine, parcel_pin: str, address_num: str, address_dir: str | None, address_name: str, address_type: str, address_suffix: str | None, city: str, state: str, zipcode5: str, zipcode4: str | None):
-    query = f"""UPDATE {schema}.{parcels}
-    SET mailstrnbr = '%(address_num)s',
+def update_mailing_address(
+    engine: Engine,
+    parcel_pin: str,
+    address_num: str,
+    address_dir: str | None,
+    address_name: str,
+    address_type: str,
+    address_suffix: str | None,
+    city: str,
+    state: str,
+    zipcode5: str,
+    zipcode4: str | None,
+):
+    sql = f"""
+        UPDATE {schema}.{parcels}
+        SET
+            mailstrnbr = :address_num,
+            mailstrdir = :address_dir,
+            mailstrnam = :address_name,
+            mailstrtyp = :address_type,
+            mailstrsfx = :address_suffix,
+            mailctynam = :city,
+            mailstenam = :state,
+            mailzip5   = :zipcode5,
+            mailzip4   = :zipcode4
+        WHERE pin = :parcel_pin;
     """
-    if address_dir:
-        query += "\n mailstrdir = '%(address_dir)s',"
-    query += """
-    mailstrnam = '%(address_name)s',
-    mailstrtyp = '%(address_type)"""
-    if address_suffix:
-        query += "\n mailstrsfx = '%(address_suffix)s',"
-    query += """
-    mailctynam = '%(city)s',
-    mailstename = '%(state)s',
-    mailzip5 = '%(zipcode5)s',
-    """
-    if zipcode4:
-        query += "\n mailzip4 = '%(zipcode4)s'"
-    query += "WHERE pin = '%(parcel_pin)s';"
 
-    return pd.read_sql(query, engine, params={'parcel_pin': parcel_pin, 'address_num': address_num,
-                                       'address_dir': address_dir, 'address_name': address_name,
-                                       'address_type': address_type, 'address_suffix': address_suffix,
-                                       'city': city, 'state': state,
-                                       'zipcode4': zipcode4, 'zipcode5': zipcode5})
+    params = {
+        "parcel_pin": parcel_pin,
+        "address_num": address_num,
+        "address_dir": address_dir,
+        "address_name": address_name,
+        "address_type": address_type,
+        "address_suffix": address_suffix,
+        "city": city,
+        "state": state,
+        "zipcode5": zipcode5,
+        "zipcode4": zipcode4,
+    }
+
+    with engine.begin() as conn:
+        res = conn.execute(text(sql), params)
+        return {"ok": True, "rows_affected": int(res.rowcount or 0)}
 
 def main():
     login = input("Login username: ")
