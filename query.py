@@ -613,6 +613,15 @@ def value_change_by_neighborhood(engine: Engine):
     """
     return pd.read_sql(query, engine)
 
+# Add flagged properties to lookup table based on user name logged into engine and parcel pin
+def add_flagged_property(engine: Engine, parcel_pin: str):
+    pass
+
+
+# Endpoint for modifying mailing addresses for parcels
+def update_mailing_address(engine: Engine, address_num: str, address: str, city: str, state: str, zipcode: str):
+    pass
+
 def main():
     login = input("Login username: ")
     secret = parse.quote(str(os.getenv("DB_PASSWORD")))
