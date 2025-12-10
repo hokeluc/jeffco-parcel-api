@@ -618,18 +618,21 @@ def current_username(engine: Engine):
     df = pd.read_sql_query("SELECT CURRENT_USER AS username;", engine)
     return str(df.iloc[0]["username"])
 
-def exec_write(engine: Engine, sql: str, params: dict) -> int:
+def exec_write(engine: Engine, sql: str, params: dict):
     with engine.begin() as conn:
-        res = conn.execute(text(sql), params)
+        res = conn.execute(sql, params)
         return res.rowcount
 
 # Add starred parcels to lookup table based on user name logged into engine and parcel pin
 def add_parcel(engine: Engine, parcel_pin: str):
+    cu = current_username(engine)
+
     sql = f"""
-    INSERT INTO {schema}.starred_parcels (username, parcel_pin)
-    VALUES (CURRENT_USER, %s);
+    INSERT INTO {schema}.starred_parcel (username, parcel_pin)
+    VALUES (:username, :parcel_pin);
     """
-    return exec_write(engine, sql, (parcel_pin,))
+
+    return exec_write(engine, sql, params={"username": cu, "parcel_pin": parcel_pin})
 
 # Add flagged properties to lookup table based on user name logged into engine and parcel pin
 def add_flagged_property(engine: Engine, parcel_pin: str):
