@@ -208,13 +208,13 @@ def whoami():
 
 # Endpoint to add a starred parcel
 class StarCreate(BaseModel):
-    parcel_pin: str
+    object_id: str
 
 # Endpoint to add a starred parcel
 @app.post("/parcels")
 def create_star(payload: StarCreate):
     try:
-        n = add_parcel(engine, payload.parcel_pin)
+        n = add_parcel(engine, payload.object_id)
         return {"ok": True, "rows_affected": n}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

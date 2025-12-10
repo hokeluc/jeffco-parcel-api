@@ -1,5 +1,5 @@
 from urllib import parse
-from sqlalchemy import create_engine, Engine, text
+from sqlalchemy import create_engine, Engine, text, types
 import pandas as pd
 from dotenv import load_dotenv
 import os
@@ -619,10 +619,10 @@ def current_username(engine: Engine):
     df = pd.read_sql_query("SELECT CURRENT_USER AS username;", engine)
     return str(df.iloc[0]["username"])
 
-# Add starred parcels to lookup table based on user name logged into engine and parcel pin
-def add_parcel(engine: Engine, parcel_pin: str):
-    df = pd.DataFrame({"username": current_username(engine), "parcel_pin": parcel_pin})
-    return  df.to_sql(f'{schema}.{stars}', engine, if_exists='append', index=False)
+# Add starred parcels to lookup table based on user name logged into engine and parcel objectid
+def add_parcel(engine: Engine, object_id: str):
+    df = pd.DataFrame({"username": [current_username(engine)], "objectid": [object_id]})
+    return  df.to_sql(stars, engine, if_exists='append', index=False)
 
 # Add flagged properties to lookup table based on user name logged into engine and parcel pin
 def add_flagged_property(engine: Engine, parcel_pin: str):
