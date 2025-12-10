@@ -1,5 +1,5 @@
 from urllib import parse
-from sqlalchemy import create_engine, Engine
+from sqlalchemy import create_engine, Engine, text
 import pandas as pd
 from dotenv import load_dotenv
 import os
@@ -612,6 +612,11 @@ def value_change_by_neighborhood(engine: Engine):
     ORDER BY value_change_pct DESC;
     """
     return pd.read_sql(query, engine)
+
+#testing username retrieval
+def current_username(engine: Engine) -> str:
+    df = pd.read_sql_query("SELECT CURRENT_USER AS username;", engine)
+    return str(df.iloc[0]["username"])
 
 # Add flagged properties to lookup table based on user name logged into engine and parcel pin
 def add_flagged_property(engine: Engine, parcel_pin: str):

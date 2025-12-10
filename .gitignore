@@ -222,3 +222,5 @@ sql2db.py
 
 # mac losers
 .DS_Store
+test.py
+test.sql

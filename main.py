@@ -196,6 +196,15 @@ def get_value_change_neighborhood():
         return df.to_dict(orient="records")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+#who am I 
+@app.get("/whoami")
+def whoami():
+    try:
+        return {"username": current_username(engine)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 
 if __name__ == "__main__":
