@@ -235,16 +235,12 @@ def whoami():
         raise HTTPException(status_code=500, detail=str(e))
 
 # Endpoint to add a starred parcel
-class StarCreate(BaseModel):
-    object_id: str
-
-# Endpoint to add a starred parcel
 @app.post("/parcels/add_starred",
          summary="Add a 'Starred' parcel to the database based on authenticated user.",
-         description="Add favorite parcels to the database for easy access and lookup based on authenticated user.")
-def create_star(payload: StarCreate):
+         description="Add favorite parcels by object ID to the database for easy access and lookup based on authenticated user.")
+def create_star(object_id: str):
     try:
-        n = add_parcel(engine, payload.object_id)
+        n = add_parcel(engine, object_id)
         return {"ok": True, "rows_affected": n}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -309,6 +305,17 @@ def edit_mailing(parcel_pin: str, address: str, city: str, state: str, zip: str)
                                suffix, city, state, zipcode5, zipcode4)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/parcels/delete_starred",
+         summary="Delete a 'Starred' parcel to the database based on authenticated user.",
+         description="Delete favorite parcels by object ID to the database if current authenticated user starred parcel.")
+def delete_starred(object_id: str):
+    username = current_username(engine)
+    result = delete_starred_parcels(username, object_id)
+    if result == -1:
+        raise HTTPException(status_code=400, detail="Parcel is not starred by current authenticated user.")
+    else:
+        return result
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

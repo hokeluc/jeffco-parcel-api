@@ -671,6 +671,15 @@ def update_mailing_address(
         res = conn.execute(text(sql), params)
         return {"ok": True, "rows_affected": int(res.rowcount or 0)}
 
+
+def delete_starred_parcels(engine, username: str, object_id: str):
+    validate = f"""SELECT username FROM {schema}.{stars} WHERE objectid = '%(object_id)s';"""
+    df = pd.read_sql(validate, engine, params={"object_id": object_id})
+    if df['username'].isin(username).any():
+        return -1
+    delete_query = f"""DELETE FROM {schema}.{stars} WHERE objectid = '%(object_id)s';"""
+    return pd.read_sql(delete_query, engine, params={"object_id": object_id})
+
 def main():
     login = input("Login username: ")
     secret = parse.quote(str(os.getenv("DB_PASSWORD")))
