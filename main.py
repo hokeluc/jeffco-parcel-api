@@ -43,7 +43,10 @@ def get_owners(name: str):
         raise HTTPException(status_code=500, detail=str(e))
     
 # http://localhost:8000/funfacts/streetvalue
-@app.get("/funfacts/streetvalue")
+@app.get("/funfacts/streetvalue",
+        summary = "Most Valuable Streets in Jefferson County",
+        description = "Returns the 3 most valuable streets in Jefferson County by tax value.",
+        )
 def get_most_valuable_streets():
     try:
         df = most_valuable_streets(engine)
@@ -53,7 +56,10 @@ def get_most_valuable_streets():
         raise HTTPException(status_code=500, detail=str(e))
     
 # http://localhost:8000/funfacts/typevalue
-@app.get("/funfacts/typevalue")
+@app.get("/funfacts/typevalue",
+         summary = "Most Valuable Street Types in Jefferson County",
+         description = "Returns the most valuable street types in Jefferson County by tax value."
+         )
 def get_most_valuable_street_types():
     try:
         df = most_valuable_street_types(engine)
@@ -65,7 +71,10 @@ def get_most_valuable_street_types():
 # Endpoint to get property price + city stats
 # Example:
 # http://localhost:8000/city-comps?address=1100%2013TH%20ST&city=GOLDEN
-@app.get("/city-comps")
+@app.get("/city-comps",
+         summary="Return Comparable Parcels for an Address/City",
+         description="Return comparable parcels with valuation for a parcel's address and city in Jeffco.")
+
 def get_city_comps(address: str, city: str):
     try:
         result = city_comps(engine, address, city)
@@ -85,7 +94,9 @@ def get_city_comps(address: str, city: str):
         raise HTTPException(status_code=500, detail=str(e))
     
 # http://localhost:8000/neighborhood-comps?address=1100%2013TH%20ST&neighborhood=Golden%20Proper
-@app.get("/neighborhood-comps")
+@app.get("/neighborhood-comps",
+         summary="Return Comparable Parcels for a Neighborhood",
+         description="Return comparable parcels with valuation for a given neighborhood in Jeffco.")
 def get_neighborhood_comps(address: str, neighborhood: str):
     try:
         result = neighborhood_comps(engine, address, neighborhood)
@@ -105,7 +116,9 @@ def get_neighborhood_comps(address: str, neighborhood: str):
         raise HTTPException(status_code=500, detail=str(e))
     
 # http://localhost:8000/property-distance-comps?address=1100%2013TH%20ST&city=GOLDEN
-@app.get("/property-distance-comps")
+@app.get("/property-distance-comps",
+         summary="Return Comparable Parcels by Distance Jefferson County",
+         description="Return comparable parcels by Euclidean distance with valuation for a parcel's address and city in Jeffco.")
 def get_property_distance_comps(
     address: str,
     city: str,
@@ -128,7 +141,9 @@ def get_property_distance_comps(
         raise HTTPException(status_code=500, detail=str(e))
     
 # http://localhost:8000/property-types-city?city=GOLDEN
-@app.get("/property-types-city")
+@app.get("/property-types-city",
+         summary="Return Property Types for a City",
+         description="Return property types for a city within Jeffco boundaries.")
 def get_property_types_city(city: str):
     try:
         result = property_type_counts_city(engine, city)
@@ -138,7 +153,9 @@ def get_property_types_city(city: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 # http://localhost:8000/occupancy-city?city=GOLDEN
-@app.get("/occupancy-city")
+@app.get("/occupancy-city",
+         summary="Return Occupancy Types for a City",
+         description="Return occupancy types for a city within Jeffco boundaries.")
 def get_occupancy_city(city: str):
     try:
         result = occupancy_counts_city(engine, city)
@@ -148,8 +165,10 @@ def get_occupancy_city(city: str):
 
 # http://localhost:8000/neighbors?pin=30-342-02-017
 # http://localhost:8000/neighbors?address=512%2016TH%20STREET&city=GOLDEN
-@app.get("/neighbors")
-def get_neighbors(address: str|None = None, city: str|None = None, pin: str|None = None, limit: int = 50):
+@app.get("/neighbors",
+         summary="Return Neighbors for a Parcel by Address or PIN",
+         description="Return neighbors for a parcel by parcel identification number or address and city in Jeffco.")
+def get_neighbors(address: str or None = None, city: str or None = None, pin: str or None = None, limit: int = 50):
     if address and not city:  # a city must be provided for address filtering
         raise HTTPException(status_code=400,
                             detail="Please provide a city with the given address.")
@@ -173,7 +192,9 @@ def get_neighbors(address: str|None = None, city: str|None = None, pin: str|None
         raise HTTPException(status_code=500, detail=str(e))
 
 #http://localhost:8000/turnover/neighborhood?years=5
-@app.get("/turnover/neighborhood")
+@app.get("/turnover/neighborhood",
+         summary="Return Neighborhood Turnover over Time in Years",
+         description="Return property turnover for a neighborhood in Jeffco over a specified amount of years (default 10.)")
 def get_turnover_neighborhood(years: int = 10):
     try:
         df = turnover_neighborhood(engine, years)
@@ -182,7 +203,9 @@ def get_turnover_neighborhood(years: int = 10):
         raise HTTPException(status_code=500, detail=str(e))
 
 #http://localhost:8000/turnover/subdivision?years=3
-@app.get("/turnover/subdivision")
+@app.get("/turnover/subdivision",
+         summary="Return Subdivision Turnover over Time in Years",
+         description="Return subdivision turnover for a neighborhood in Jeffco over a specified amount of years (default 10.)")
 def get_turnover_subdivision(years: int = 10):
     try:
         df = turnover_subdivision(engine, years)
@@ -191,7 +214,9 @@ def get_turnover_subdivision(years: int = 10):
         raise HTTPException(status_code=500, detail=str(e))
     
 #http://localhost:8000/value-change/neighborhood
-@app.get("/value-change/neighborhood")
+@app.get("/value-change/neighborhood",
+         summary="Return Neighborhood Value Change",
+         description="Return value changes for neighborhoods in Jeffco.")
 def get_value_change_neighborhood():
     try:
         df = value_change_by_neighborhood(engine)
@@ -200,7 +225,9 @@ def get_value_change_neighborhood():
         raise HTTPException(status_code=500, detail=str(e))
     
 #who am I http://localhost:8000/whoami
-@app.get("/whoami")
+@app.get("/whoami",
+         summary="Return Authenticated User Name",
+         description="Return the current authenticated user name.")
 def whoami():
     try:
         return {"username": current_username(engine)}
@@ -212,7 +239,9 @@ class StarCreate(BaseModel):
     object_id: str
 
 # Endpoint to add a starred parcel
-@app.post("/parcels/add_starred")
+@app.post("/parcels/add_starred",
+         summary="Add a 'Starred' parcel to the database based on authenticated user.",
+         description="Add favorite parcels to the database for easy access and lookup based on authenticated user.")
 def create_star(payload: StarCreate):
     try:
         n = add_parcel(engine, payload.object_id)
@@ -221,7 +250,9 @@ def create_star(payload: StarCreate):
         raise HTTPException(status_code=500, detail=str(e))
 
 # Endpoint to modify a parcel's mailing address
-@app.put("/parcels/edit_mailing")
+@app.put("/parcels/edit_mailing",
+         summary="Edit Parcel Mailing Address",
+         description="Edit a parcel's mailing address for a given parcel identification number.")
 def edit_mailing(parcel_pin: str, address: str, city: str, state: str, zip: str):
     DIRECTIONS = {"N", "S", "E", "W", "NE", "NW", "SE", "SW"}
 

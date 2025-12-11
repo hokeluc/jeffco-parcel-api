@@ -630,14 +630,14 @@ def update_mailing_address(
     engine: Engine,
     parcel_pin: str,
     address_num: str,
-    address_dir: str | None,
+    address_dir: str or None,
     address_name: str,
     address_type: str,
-    address_suffix: str | None,
+    address_suffix: str or None,
     city: str,
     state: str,
     zipcode5: str,
-    zipcode4: str | None,
+    zipcode4: str or None,
 ):
     sql = f"""
         UPDATE {schema}.{parcels}
